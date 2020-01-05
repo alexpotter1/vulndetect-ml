@@ -6,13 +6,15 @@ import re
 import os
 import util
 import ray
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
 
 def isPrimitive(obj):
     return not hasattr(obj, '__dict__')
 
+
 def extract_bad_function(file_path):
     return extract_function(file_path, criterion='bad')
+
 
 def extract_function(file_path, criterion):
     def recursive_find_deepest_child_position(node_body, prev_deepest=0):
@@ -43,10 +45,9 @@ def extract_function(file_path, criterion):
                     child_sub_pos = deepest_position
 
                 child_direct_child_set = child.children
-            except:
+            except AttributeError:
                 # most likely is not an object
                 child_sub_pos = deepest_position
-                
                 if isinstance(child, list):
                     child_direct_child_set = child
                 else:
@@ -68,7 +69,8 @@ def extract_function(file_path, criterion):
             tree = javalang.parse.parse(src)
             for _, node in tree.filter(javalang.tree.MethodDeclaration):
                 if node.name.lower() == str(criterion).lower():
-                    # tokenise, find the start/end of method, and extract from the file
+                    # tokenise, find the start/end of method,
+                    # and extract from the file
                     # needed since javalang can't convert back to java src
                     start_pos = node.position.line
                     end_pos = None
@@ -79,18 +81,21 @@ def extract_function(file_path, criterion):
                         end_pos = start_pos
 
                     function_text = ""
-                    for line in range(start_pos, end_pos+1):
-                        function_text += src_split[line-1]
-                    
+                    for line in range(start_pos, end_pos + 1):
+                        function_text += src_split[line - 1]
+
                     return function_text
-                
+
             return None
-        except (javalang.parser.JavaSyntaxError, javalang.parser.JavaParserError) as e:
+        except (javalang.parser.JavaSyntaxError,
+                javalang.parser.JavaParserError) as e:
             print("ERROR OCCURRED DURING PARSING")
             print(e)
 
+
 def chunkstring(string, length):
-    return (string[0+i:length+i] for i in range(0, len(string), length))
+    return (string[0 + i:length + i] for i in range(0, len(string), length))
+
 
 def vectorise(body, vecsize=util.VEC_SIZE, norm_wspace=True):
     if body is None or len(body) == 0:
@@ -99,7 +104,7 @@ def vectorise(body, vecsize=util.VEC_SIZE, norm_wspace=True):
     if norm_wspace:
         body = body.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
         body = re.sub(r'\s+', ' ', body)
-    
+
     # trim to maximum vector size if body is super duper large
     body = body[0:vecsize]
 
@@ -107,12 +112,13 @@ def vectorise(body, vecsize=util.VEC_SIZE, norm_wspace=True):
     chunks = list(chunkstring(body, util.ONEHOT_CHUNK_SIZE))
 
     onehot_encoded = util.one_hot_string(chunks, mapping_tuple=util.CHAR_MAPPING, string_chunk_length=util.ONEHOT_CHUNK_SIZE)
-      
+
     '''if len(onehot_encoded) < vecsize:
         for _ in range(0, vecsize - len(onehot_encoded)):
             f_vec.append(util.pad_vector)'''
 
     return onehot_encoded
+
 
 @ray.remote
 def get_vulnerable_code_samples_for_path(base_path):
@@ -132,10 +138,11 @@ def get_vulnerable_code_samples_for_path(base_path):
 
                         one_hot = util.one_hot_string(list(label), mapping_tuple=util.LABEL_CHAR_MAPPING, string_chunk_length=1)
                         Y.append(one_hot)
-        
+
             i += 1
 
     return np.asarray(X), np.asarray(Y)
+
 
 def save_vulnerable_code_samples(base_path):
     print("Parallelizing...")
@@ -151,11 +158,9 @@ def save_vulnerable_code_samples(base_path):
             ret_X, ret_Y = ray.get(task_ids[i])
             save_name = "%svector-%s" % (util.SAVE_PATH, processed)
             np.savez(save_name, X=ret_X, Y=ret_Y)
-            print("Saved vector: %s for category %s" % (save_name, categories[processed]))
+            print("Saved vector: %s for category %s" %
+                  (save_name, categories[processed]))
+
             processed += 1
-            
 
     ray.shutdown()
-    
-
-

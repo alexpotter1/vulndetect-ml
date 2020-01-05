@@ -4,8 +4,9 @@ import keras
 import math
 import util
 
+
 class DataGenerator(keras.utils.Sequence):
-    def __init__(self, paths, batch_size=8, dim=(32,32,32), n_channels=1, n_classes=112, shuffle=True):
+    def __init__(self, paths, batch_size=8, dim=(32, 32, 32), n_channels=1, n_classes=112, shuffle=True):
         self.dim = dim
         self.batch_size = batch_size
         self.paths = paths
@@ -21,10 +22,10 @@ class DataGenerator(keras.utils.Sequence):
         return int(np.floor(len(self.paths) / self.batch_size))
     
     def __getitem__(self, index):
-        inds = self.indexes[index * self.batch_size:(index+1)*self.batch_size]
+        inds = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
         paths_temp = [self.paths[i] for i in inds]
         x, y = self.__data_generation(paths_temp)
-        return x,y
+        return x, y
     
     def on_epoch_end(self):
         self.indexes = np.arange(len(self.paths))
@@ -48,7 +49,7 @@ class DataGenerator(keras.utils.Sequence):
             if class_x.shape[0] != self.dim[0]:
                 continue
 
-            x[i,] = class_x
+            x[i, ] = class_x
             y[i] = class_y
         
         # keras can't one-hot encode strings, only integers, so transform first
@@ -70,5 +71,4 @@ class DataGenerator(keras.utils.Sequence):
         print('X shape=%s' % str(x.shape))
         print('Y shape=%s' % str(y.shape))
 
-        return x,y
-
+        return x, y

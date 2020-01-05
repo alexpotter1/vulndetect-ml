@@ -2,12 +2,10 @@
 
 import numpy as np
 import parse_training_input
-from keras.models import Sequential, Model
-from keras.layers import Embedding, Dropout, Bidirectional, LSTM, Dense, Activation
-from keras.layers.merge import Concatenate
+from keras.models import Sequential
+from keras.layers import Dropout, LSTM, Dense
 import util
 from data_gen import DataGenerator
-import math
 import time
 
 import ray
@@ -33,14 +31,14 @@ batch_size = 8
 if not util.do_saved_vectors_exist():
     print("\nParsing training data...\n")
     parse_training_input.save_vulnerable_code_samples(util.BASE_PATH)
-    print("\nTraining data vectorisation complete. Starting training in 5 seconds...\n")
+    print("\nComplete. Starting training in 5 seconds...\n")
     time.sleep(5)
 
 print("\nTraining...\n")
 # setup data loader (generator)
 labels = util.get_vulnerability_categories()
 generator_params = {
-    'dim': (17,102400),
+    'dim': (17, 102400),
     'batch_size': batch_size,
     'n_classes': len(labels),
     'n_channels': 71,
@@ -74,5 +72,10 @@ model.compile('adam', 'sparse_categorical_crossentropy', metrics=['accuracy'])
 print(model.summary())
 steps_per_epoch = ((len(labels) * util.MAX_FILE_PARSE) // batch_size)
 print("Steps/epoch: %s" % steps_per_epoch)
-model.fit_generator(generator=training_gen, validation_data=validation_gen, steps_per_epoch=steps_per_epoch, use_multiprocessing=True, workers=12)
+model.fit_generator(
+    generator=training_gen,
+    validation_data=validation_gen,
+    steps_per_epoch=steps_per_epoch,
+    use_multiprocessing=True,
+    workers=12)
 model.save('save_temp.h5')
