@@ -3,6 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+.DS_Store
+._.DS_Store
+
+# Java testcase and preprocessed files
+testcases/
+._testcases/
+
+# ML training checkpoints
+training_checkpoints/
+
 # C extensions
 *.so
 
