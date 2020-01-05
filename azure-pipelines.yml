@@ -1,0 +1,26 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- '*'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.7'
+
+- script: echo "Azure environment has initialised!"
+  displayName: 'init'
+
+- script: python3 -m pip3 install -r requirements.txt
+  displayName: 'setup requirements'
+
+- script: |
+    python3 -m pip3 install flake8
+    flake8 .
+  displayName: 'run lint tests'
