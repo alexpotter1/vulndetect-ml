@@ -61,9 +61,9 @@ def extract_function(file_path, criterion):
 
         return deepest_position
 
-    with open(file_path, 'r') as file:
+    with open(file_path, 'rb') as file:
         src = file.read()
-        src_split = src.split('\n')
+        src_split = src.decode('utf-8').split('\n')
 
         try:
             tree = javalang.parse.parse(src)

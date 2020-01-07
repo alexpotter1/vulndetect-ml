@@ -39,7 +39,7 @@ class DataGenerator(keras.utils.Sequence):
         for i, path in enumerate(paths_temp):
             class_x = None
             class_y = None
-            with np.load(path) as data:
+            with np.load(path, allow_pickle=True) as data:
                 print("Loading %s" % path)
                 class_x = data['X']
                 print(class_x.shape)

@@ -5,8 +5,8 @@ import os
 import glob
 import itertools
 
-BASE_PATH = "/Users/alexpotter1/Documents/ml/testcases/"
-SAVE_PATH = "/Users/alexpotter1/Documents/ml/testcases/vectorised/"
+BASE_PATH = os.getcwd() + "/testcases/"
+SAVE_PATH = BASE_PATH + "vectorised/"
 
 # stop memory usage getting hugh mungus
 MAX_FILE_PARSE = 75
