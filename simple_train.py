@@ -38,7 +38,7 @@ print("\nTraining...\n")
 # setup data loader (generator)
 labels = util.get_vulnerability_categories()
 generator_params = {
-    'dim': (17, 102400),
+    'dim': (17,),
     'batch_size': batch_size,
     'n_classes': len(labels),
     'n_channels': 71,
@@ -63,7 +63,7 @@ lab_shuf = labels[shuffle_indices]'''
 
 model = Sequential()
 
-model.add(LSTM(256, input_shape=(util.VEC_SIZE, generator_params['n_channels']), return_sequences=True))
+model.add(LSTM(256, input_shape=(1, 17), return_sequences=True))
 model.add(Dropout(0.2))
 model.add(LSTM(256))
 model.add(Dropout(0.2))
