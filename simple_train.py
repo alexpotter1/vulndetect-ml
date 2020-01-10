@@ -2,8 +2,8 @@
 
 import numpy as np
 import parse_training_input
-from keras.models import Sequential
-from keras.layers import Dropout, LSTM, Dense
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dropout, LSTM, Dense, Input
 import util
 from data_gen import DataGenerator
 import time
@@ -63,9 +63,10 @@ lab_shuf = labels[shuffle_indices]'''
 
 model = Sequential()
 
+model.add(Input(shape=(1, 17), sparse=True, batch_size=8))
 model.add(LSTM(256, input_shape=(1, 17), return_sequences=True))
 model.add(Dropout(0.2))
-model.add(LSTM(256))
+model.add(LSTM(256, return_sequences=True))
 model.add(Dropout(0.2))
 model.add(Dense(1, activation='softmax'))
 model.compile('adam', 'sparse_categorical_crossentropy', metrics=['accuracy'])

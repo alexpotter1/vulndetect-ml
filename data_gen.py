@@ -1,10 +1,10 @@
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-import keras
+import tensorflow.keras
 import math
 
 
-class DataGenerator(keras.utils.Sequence):
+class DataGenerator(tensorflow.keras.utils.Sequence):
     def __init__(self, paths, batch_size=8, dim=(32, 32, 32), n_channels=1, n_classes=112, shuffle=True):
         self.dim = dim
         self.batch_size = batch_size
@@ -49,11 +49,11 @@ class DataGenerator(keras.utils.Sequence):
             min_csr_x_subshape_ind0 = min([x.shape[0] for x in class_x])
             min_csr_y_subshape_ind0 = min([y.shape[0] for y in class_y])
 
-            x_i_trim = np.asarray([i[:min_csr_x_subshape_ind0] for i in class_x])
+            x_i_trim = np.asarray([i[:min_csr_x_subshape_ind0] for i in class_x], dtype=np.uint8)
             print("trim_x shape: " + str(x_i_trim.shape))
             x[i, ] = x_i_trim
 
-            y[i] = np.asarray([i[:min_csr_y_subshape_ind0] for i in class_y])
+            y[i] = np.asarray([i[:min_csr_y_subshape_ind0] for i in class_y], dtype=np.uint8)
 
         # ensure x and y first dimension are equal lengths
         # pylint: disable=E1136
