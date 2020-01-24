@@ -3,7 +3,7 @@
 import numpy as np
 import parse_training_input
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dropout, LSTM, Dense, Input
+from tensorflow.keras.layers import Dropout, LSTM, Dense, Input, Activation
 import util
 from data_gen import DataGenerator
 import time
@@ -26,7 +26,7 @@ p_dropout = (0.25, 0.5)
 hidden_dims = 128
 num_quantised_chars = len(util.supported_char_list)
 
-batch_size = 8
+batch_size = 1
 
 if not util.do_saved_vectors_exist():
     print("\nParsing training data...\n")
@@ -38,7 +38,7 @@ print("\nTraining...\n")
 # setup data loader (generator)
 labels = util.get_vulnerability_categories()
 generator_params = {
-    'dim': (17,),
+    'dim': (17, 300, 9506),
     'batch_size': batch_size,
     'n_classes': len(labels),
     'n_channels': 71,
@@ -62,14 +62,14 @@ vec_shuf = vectors[shuffle_indices]
 lab_shuf = labels[shuffle_indices]'''
 
 model = Sequential()
-
-model.add(Input(shape=(1, 17), sparse=True, batch_size=8))
-model.add(LSTM(256, input_shape=(1, 17), return_sequences=True))
+model.add(Input(shape=(None, 9506), sparse=False, batch_size=17))
+# model.add(Embedding(9506, 128, input_length=17))
+model.add(Dropout(0.4))
+model.add(LSTM(256, recurrent_dropout=0.2, dropout=0.2))
 model.add(Dropout(0.2))
-model.add(LSTM(256, return_sequences=True))
-model.add(Dropout(0.2))
-model.add(Dense(1, activation='softmax'))
-model.compile('adam', 'sparse_categorical_crossentropy', metrics=['accuracy'])
+model.add(Dense(97 * generator_params['n_classes']))
+model.add(Activation('softmax'))
+model.compile('adam', 'categorical_crossentropy', metrics=['accuracy'])
 print(model.summary())
 steps_per_epoch = ((len(labels) * util.MAX_FILE_PARSE) // batch_size)
 print("Steps/epoch: %s" % steps_per_epoch)
@@ -77,6 +77,6 @@ model.fit_generator(
     generator=training_gen,
     validation_data=validation_gen,
     steps_per_epoch=steps_per_epoch,
-    use_multiprocessing=True,
-    workers=12)
+    use_multiprocessing=False,
+    workers=1)
 model.save('save_temp.h5')
