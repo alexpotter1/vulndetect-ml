@@ -82,7 +82,10 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
             y = y[:x.shape[0]]
 
         x_transform = np.zeros((self.dim[0], self.dim[1], x.shape[2]))
-        x_transform[:x.shape[0], :x.shape[1], :] = x
+        if x.shape[1] < self.dim[1]:
+            x_transform[:x.shape[0], :x.shape[1], :] = x
+        else:
+            x_transform = x[:self.dim[0], :self.dim[1], :]
         x = x_transform
 
         y_transform = np.zeros((self.dim[0], self.dim[1], y.shape[2]))
