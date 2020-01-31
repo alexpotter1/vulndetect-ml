@@ -43,6 +43,9 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
                 class_y = data['Y']
 
             class_x = class_x[:self.dim[0]]
+            if class_x.shape[0] == 0:
+                # this won't work
+                continue
 
             # ensure data coming from file is uniform length
             min_csr_x_subshape_ind0 = min([x.shape[0] for x in class_x])
@@ -60,8 +63,15 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
 
             y.append(np.asarray([i[:min_csr_y_subshape_ind0].toarray() for i in class_y], dtype=np.uint8))
 
-        x = np.asarray(x)[0]
-        y = np.asarray(y)[0]
+        if len(x) == 0:
+            x = np.empty((self.batch_size, *self.dim), dtype=np.uint8)
+        else:
+            x = np.asarray(x)[0]
+        
+        if len(y) == 0:
+            y = np.empty((self.batch_size,), dtype=np.uint8)
+        else:
+            y = np.asarray(y)[0]
 
         # ensure x and y first dimension are equal lengths
         # pylint: disable=E1136
@@ -71,8 +81,17 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
         elif (y.shape[0] > x.shape[0]):
             y = y[:x.shape[0]]
 
+        x_transform = np.zeros((self.dim[0], self.dim[1], x.shape[2]))
+        x_transform[:x.shape[0], :x.shape[1], :] = x
+        x = x_transform
+
+        y_transform = np.zeros((self.dim[0], self.dim[1], y.shape[2]))
+        y_transform[:y.shape[0], :y.shape[1], :] = y
+        y = y_transform
+
         # reshape to accommodate lstm timestep
-        # x = np.reshape(x, (x.shape[1], 1, x.shape[3]))
+        # x = np.reshape(x, (x.shape[0], 1, x.shape[2]))
+        # y = np.reshape(y, (y.shape[0], 256, -1))
 
         print('X shape=%s' % str(x.shape))
         print('Y shape=%s' % str(y.shape))

@@ -2,8 +2,9 @@
 
 import numpy as np
 import parse_training_input
+import tensorflow
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dropout, LSTM, Dense, Input, Activation
+from tensorflow.keras.layers import Dropout, LSTM, Dense, Input, Lambda, Flatten, Conv1D, MaxPooling1D
 import util
 from data_gen import DataGenerator
 import time
@@ -16,6 +17,7 @@ categories = util.get_vulnerability_categories()
 
 max_files_to_load = 2000
 category_count = len(categories)
+MAX_N_CHUNKS = 1000
 
 # Model hyper-params
 seq_length = 2 * 2048
@@ -38,7 +40,7 @@ print("\nTraining...\n")
 # setup data loader (generator)
 labels = util.get_vulnerability_categories()
 generator_params = {
-    'dim': (17, 300, 9506),
+    'dim': (17, 500, 9506),
     'batch_size': batch_size,
     'n_classes': len(labels),
     'n_channels': 71,
@@ -62,14 +64,18 @@ vec_shuf = vectors[shuffle_indices]
 lab_shuf = labels[shuffle_indices]'''
 
 model = Sequential()
-model.add(Input(shape=(None, 9506), sparse=False, batch_size=17))
-# model.add(Embedding(9506, 128, input_length=17))
-model.add(Dropout(0.4))
-model.add(LSTM(256, recurrent_dropout=0.2, dropout=0.2))
+model.add(Input(batch_shape=generator_params['dim']))
+model.add(Conv1D(filters=500, kernel_size=3, padding='same', dilation_rate=1, activation='relu'))
+model.add(MaxPooling1D(pool_size=4))
+model.add(Conv1D(filters=500, kernel_size=3, padding='same', dilation_rate=1, activation='relu'))
+model.add(MaxPooling1D(pool_size=2))
+model.add(LSTM(500, recurrent_dropout=0.2, dropout=0.2))
 model.add(Dropout(0.2))
-model.add(Dense(97 * generator_params['n_classes']))
-model.add(Activation('softmax'))
-model.compile('adam', 'categorical_crossentropy', metrics=['accuracy'])
+model.add(Dense(500))
+model.add(Lambda(lambda x: tensorflow.expand_dims(x, -1)))
+model.add(Dense(97, activation='softmax'))
+# model.add(Activation('softmax'))
+model.compile('adam', 'categorical_crossentropy', metrics=['categorical_accuracy'])
 print(model.summary())
 steps_per_epoch = ((len(labels) * util.MAX_FILE_PARSE) // batch_size)
 print("Steps/epoch: %s" % steps_per_epoch)
