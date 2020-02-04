@@ -7,6 +7,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dropout, LSTM, Dense, Input, Lambda, Flatten, Conv1D, MaxPooling1D
 import util
 from data_gen import DataGenerator
+import datetime
 import time
 
 import ray
@@ -63,6 +64,9 @@ shuffle_indices = np.random.permutation(np.arange(len(labels)))
 vec_shuf = vectors[shuffle_indices]
 lab_shuf = labels[shuffle_indices]'''
 
+log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
 model = Sequential()
 model.add(Input(batch_shape=generator_params['dim']))
 model.add(Conv1D(filters=500, kernel_size=3, padding='same', dilation_rate=1, activation='relu'))
@@ -84,5 +88,6 @@ model.fit_generator(
     validation_data=validation_gen,
     steps_per_epoch=steps_per_epoch,
     use_multiprocessing=False,
-    workers=1)
+    workers=1,
+    callbacks=[tensorboard_callback])
 model.save('save_temp.h5')
