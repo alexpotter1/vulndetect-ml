@@ -51,14 +51,20 @@ generator_params = {
 }
 
 full = util.get_saved_vector_list()
-# 70/30 train validate split
+# 70/30 train test split
 split = round(len(full) * 0.7)
 train = full[:split]
-validate = full[split:]
+test = full[split:]
+predict = test[-3:]
+
+# reserve 10 paths of train for validation
+validate = train[-10:]
 print((len(train), len(validate)))
 
 training_gen = DataGenerator(train, **generator_params)
 validation_gen = DataGenerator(validate, **generator_params)
+test_gen = DataGenerator(test, **generator_params)
+predict_gen = DataGenerator(predict, **generator_params)
 
 '''vectors, labels = map(list, zip(*functions))
 
@@ -91,13 +97,29 @@ model.add(Dense(category_count, activation='softmax'))
 # model.add(Activation('softmax'))
 model.compile('adam', 'sparse_categorical_crossentropy', metrics=['sparse_categorical_accuracy'])
 print(model.summary())
-steps_per_epoch = ((len(labels) * util.MAX_FILE_PARSE) // batch_size)
+steps_per_epoch = 10
 print("Steps/epoch: %s" % steps_per_epoch)
-model.fit_generator(
+history = model.fit_generator(
     generator=training_gen,
     validation_data=validation_gen,
+    validation_steps=1,
     steps_per_epoch=steps_per_epoch,
+    epochs=1,
     use_multiprocessing=False,
     workers=1,
     callbacks=[tensorboard_callback])
 model.save('save_temp.h5')
+
+print("\nhistory dict: ", history.history)
+
+print("\nModel evaluation")
+results = model.evaluate_generator(test_gen, verbose=1)
+print("test loss, test acc: ", results)
+
+print("\nModel prediction (using last 3 samples of test)")
+predictions = model.predict_generator(predict_gen, verbose=1)
+print("predictions shape: ", predictions.shape)
+print(predictions)
+
+print("\nSaving predictions to file")
+np.savez('predictions', values=predictions)

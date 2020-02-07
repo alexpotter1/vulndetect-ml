@@ -45,7 +45,7 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
                     if file_count_for_class < self.min_seen_data_length:
                         self.min_seen_data_length = file_count_for_class
         
-        print("Minimum common file count: " + str(self.min_seen_data_length))
+        print("Common file count: " + str(self.min_seen_data_length))
         print("Loading data from vector bundles...")
         
         # two rounds of loads is kinda silly but oh well
@@ -67,9 +67,18 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
 
                 x.append(encoded_texts[:self.min_seen_data_length])
                 y.append(encoded_labels[:self.min_seen_data_length])
-                
-        x = np.squeeze(np.asarray(x), axis=0)
-        y = np.squeeze(np.asarray(y), axis=0)
+
+        x = np.asarray(x)
+        y = np.asarray(y)
+        try:
+            x = np.squeeze(x, axis=0)
+            y = np.squeeze(y, axis=0)
+        except ValueError as e:
+            # x, y could be empty, return default
+            print("\n\nWARNING: %s" % (str(e)))
+            print("Returning placeholder zero arrays\n\n")
+            x = np.zeros((self.dim), dtype=np.int32)
+            y = np.zeros((self.dim), dtype=np.int32)
 
         print('X shape=%s' % str(x.shape))
         print('Y shape=%s' % str(y.shape))
