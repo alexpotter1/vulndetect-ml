@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import tensorflow.keras
-import math
 
 
 class DataGenerator(tensorflow.keras.utils.Sequence):
@@ -12,6 +11,7 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
         self.n_classes = n_classes
         self.n_channels = n_channels
         self.shuffle = shuffle
+        self.min_seen_data_length = None
 
         self.label_encoder = LabelEncoder()
         print("Generator initialised.")
@@ -35,66 +35,41 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
         x = []
         y = []
 
+        if self.min_seen_data_length is None:
+            self.min_seen_data_length = 1e9
+            print("Getting minimum common file count to collate across all vector bundles...")
+            for _, path in enumerate(paths_temp):
+                with np.load(path, allow_pickle=True) as data:
+                    file_count_for_class = data['X'].item().shape[0]
+
+                    if file_count_for_class < self.min_seen_data_length:
+                        self.min_seen_data_length = file_count_for_class
+        
+        print("Minimum common file count: " + str(self.min_seen_data_length))
+        print("Loading data from vector bundles...")
+        
+        # two rounds of loads is kinda silly but oh well
         for _, path in enumerate(paths_temp):
             with np.load(path, allow_pickle=True) as data:
-                print("Loading %s" % path)
-                class_x = data['X']
-                print(class_x.shape)
-                class_y = data['Y']
+                encoded_texts = data['X'].item()
+                encoded_labels = data['Y'].item()
 
-            class_x = class_x[:self.dim[0]]
-            if class_x.shape[0] == 0:
-                # this won't work
-                continue
+                if encoded_texts is None or encoded_labels is None:
+                    # can't work with this
+                    continue
 
-            # ensure data coming from file is uniform length
-            min_csr_x_subshape_ind0 = min([x.shape[0] for x in class_x])
-            min_csr_y_subshape_ind0 = min([y.shape[0] for y in class_y])
+                encoded_texts = encoded_texts.toarray()
+                encoded_labels = encoded_labels.toarray()
 
-            x_i_trim = np.asarray([i[:min_csr_x_subshape_ind0].toarray() for i in class_x])
+                # check texts and labels are same dimensionality
+                if encoded_texts.shape != encoded_labels.shape:
+                    print("WARNING: Texts and labels are different shapes, texts=%s, labels=%s" % (str(encoded_texts.shape), str(encoded_labels.shape)))
 
-            '''if (x_i_trim.shape[1] < self.dim[1]):
-                diff = self.dim[1] - x_i_trim.shape[1]
-                npad = ((0,0), (0, diff), (0,0))
-                x_i_trim = np.pad(x_i_trim, pad_width=npad, mode='constant')'''
-
-            print("trim_x shape: " + str(x_i_trim.shape))
-            x.append(x_i_trim)
-
-            y.append(np.asarray([i[:min_csr_y_subshape_ind0].toarray() for i in class_y], dtype=np.uint8))
-
-        if len(x) == 0:
-            x = np.empty((self.batch_size, *self.dim), dtype=np.uint8)
-        else:
-            x = np.asarray(x)[0]
-        
-        if len(y) == 0:
-            y = np.empty((self.batch_size,), dtype=np.uint8)
-        else:
-            y = np.asarray(y)[0]
-
-        # ensure x and y first dimension are equal lengths
-        # pylint: disable=E1136
-        if y.shape[0] < x.shape[0]:
-            y = np.repeat(y, math.ceil(x.shape[0] / y.shape[0]))
-            y = y[:x.shape[0]]
-        elif (y.shape[0] > x.shape[0]):
-            y = y[:x.shape[0]]
-
-        x_transform = np.zeros((self.dim[0], self.dim[1], x.shape[2]))
-        if x.shape[1] < self.dim[1]:
-            x_transform[:x.shape[0], :x.shape[1], :] = x
-        else:
-            x_transform = x[:self.dim[0], :self.dim[1], :]
-        x = x_transform
-
-        y_transform = np.zeros((self.dim[0], self.dim[1], y.shape[2]))
-        y_transform[:y.shape[0], :y.shape[1], :] = y
-        y = y_transform
-
-        # reshape to accommodate lstm timestep
-        # x = np.reshape(x, (x.shape[0], 1, x.shape[2]))
-        # y = np.reshape(y, (y.shape[0], 256, -1))
+                x.append(encoded_texts[:self.min_seen_data_length])
+                y.append(encoded_labels[:self.min_seen_data_length])
+                
+        x = np.squeeze(np.asarray(x), axis=0)
+        y = np.squeeze(np.asarray(y), axis=0)
 
         print('X shape=%s' % str(x.shape))
         print('Y shape=%s' % str(y.shape))
