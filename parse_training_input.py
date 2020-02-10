@@ -2,7 +2,7 @@
 
 import javalang
 import numpy as np
-from tensorflow.keras.preprocessing.text import hashing_trick
+from tensorflow.keras.preprocessing.text import hashing_trick, text_to_word_sequence
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from scipy import sparse
 import json
@@ -137,6 +137,7 @@ def get_vulnerable_code_samples_for_path(base_path):
     i = 0
     texts = []
     labels = []
+    label_map = util.label_map
     for path, _, files in util.walk_level(base_path, level=0):
         if len(files) > 0:
             label = util.trim_root_path(util.BASE_PATH, base_path)
@@ -147,12 +148,15 @@ def get_vulnerable_code_samples_for_path(base_path):
                     result = extract_bad_function(path + os.path.sep + f)
                     if result is not None:
                         texts.append(result)
-                        labels.append(label)
+                        # integer encode this so it's reversible
+                        label_idx = label_map[label]
+                        one_hot_label_vector = [0] * util.VEC_SIZE
+                        one_hot_label_vector[label_idx] = 1
+                        labels.append(one_hot_label_vector)
             i += 1
 
     vector_texts = vectorise_texts(texts)
-    vector_labels = vectorise_texts(labels)
-    return np.asarray(vector_texts), np.asarray(vector_labels)
+    return np.asarray(vector_texts), np.asarray(labels)
 
 
 def save_vulnerable_code_samples(base_path):

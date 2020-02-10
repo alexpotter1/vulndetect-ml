@@ -9,6 +9,7 @@ import util
 from data_gen import DataGenerator
 import json
 import os
+from os.path import join
 import datetime
 import time
 
@@ -42,6 +43,7 @@ if not util.do_saved_vectors_exist():
 print("\nTraining...\n")
 # setup data loader (generator)
 labels = util.get_vulnerability_categories()
+
 generator_params = {
     'dim': (17, 4096),
     'batch_size': batch_size,
@@ -66,14 +68,32 @@ validation_gen = DataGenerator(validate, **generator_params)
 test_gen = DataGenerator(test, **generator_params)
 predict_gen = DataGenerator(predict, **generator_params)
 
+log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+os.makedirs(log_dir, exist_ok=True)
+
+'''# obtain data from test_gen for embedding visualisation
+# array(x1, x2, x3, ..., yn)
+# array(y1, y2, y3, ..., yn)
+data_test_x = []
+data_test_y = []
+iterator = test_gen.__iter__()
+for iterable in iterator:
+    data_test_x.append(iterable[0])
+    data_test_y.append(iterable[1])
+
+data_test_x = np.asarray(data_test_x)
+data_test_y = np.asarray(data_test_y)
+
+with open(join(log_dir, 'metadata.tsv'), 'w') as f:
+    np.savetxt(f, data_test_y, fmt='%1.18e')'''
+
 '''vectors, labels = map(list, zip(*functions))
 
 shuffle_indices = np.random.permutation(np.arange(len(labels)))
 vec_shuf = vectors[shuffle_indices]
 lab_shuf = labels[shuffle_indices]'''
 
-log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)#, embeddings_freq=1, embeddings_layer_names=['embed'], embeddings_metadata='metadata.tsv', embeddings_data=data_test_x)
 
 # obtain max vocabulary onehot size for embedding layer
 embed_vocab_size = 64
@@ -88,7 +108,7 @@ else:
 
 embedding_vector_length = 32
 model = Sequential()
-model.add(Embedding(embed_vocab_size, embedding_vector_length, input_length=generator_params['dim'][1]))
+model.add(Embedding(embed_vocab_size, embedding_vector_length, input_length=generator_params['dim'][1], name='embed'))
 model.add(LSTM(64, recurrent_dropout=0.2, dropout=0.2))
 model.add(Dropout(0.2))
 model.add(Dense(4096))
@@ -99,14 +119,16 @@ model.compile('adam', 'sparse_categorical_crossentropy', metrics=['sparse_catego
 print(model.summary())
 steps_per_epoch = 10
 print("Steps/epoch: %s" % steps_per_epoch)
-history = model.fit_generator(
-    generator=training_gen,
+history = model.fit(
+    x=training_gen,
     validation_data=validation_gen,
     validation_steps=1,
-    steps_per_epoch=steps_per_epoch,
+    steps_per_epoch=None,
     epochs=1,
     use_multiprocessing=False,
     workers=1,
+    shuffle=True,
+    verbose=1,
     callbacks=[tensorboard_callback])
 model.save('save_temp.h5')
 

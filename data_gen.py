@@ -40,10 +40,13 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
             print("Getting minimum common file count to collate across all vector bundles...")
             for _, path in enumerate(paths_temp):
                 with np.load(path, allow_pickle=True) as data:
-                    file_count_for_class = data['X'].item().shape[0]
-
-                    if file_count_for_class < self.min_seen_data_length:
-                        self.min_seen_data_length = file_count_for_class
+                    try:
+                        file_count_for_class = data['X'].item().shape[0]
+                        if file_count_for_class < self.min_seen_data_length:
+                            self.min_seen_data_length = file_count_for_class
+                    except AttributeError:
+                        print("Got no X data for %s? Hmm (1/2)" % path)
+                        self.min_seen_data_length = 5
         
         print("Common file count: " + str(self.min_seen_data_length))
         print("Loading data from vector bundles...")
@@ -52,21 +55,21 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
         for _, path in enumerate(paths_temp):
             with np.load(path, allow_pickle=True) as data:
                 encoded_texts = data['X'].item()
-                encoded_labels = data['Y'].item()
+                label_ints = data['Y']
 
-                if encoded_texts is None or encoded_labels is None:
+                if encoded_texts is None or label_ints is None:
                     # can't work with this
+                    print("Got no data for npz path %s? Hmm (2/2)" % path)
                     continue
 
                 encoded_texts = encoded_texts.toarray()
-                encoded_labels = encoded_labels.toarray()
 
-                # check texts and labels are same dimensionality
-                if encoded_texts.shape != encoded_labels.shape:
-                    print("WARNING: Texts and labels are different shapes, texts=%s, labels=%s" % (str(encoded_texts.shape), str(encoded_labels.shape)))
+                # check texts and labels are same length
+                if encoded_texts.shape[0] != label_ints.shape[0]:
+                    print("WARNING: Texts and labels are different lengths, texts=%s, labels=%s" % (str(encoded_texts.shape[0]), str(label_ints.shape[0])))
 
                 x.append(encoded_texts[:self.min_seen_data_length])
-                y.append(encoded_labels[:self.min_seen_data_length])
+                y.append(label_ints[:self.min_seen_data_length])
 
         x = np.asarray(x)
         y = np.asarray(y)

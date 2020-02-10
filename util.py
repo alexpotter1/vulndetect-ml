@@ -2,6 +2,7 @@ import numpy as np
 from tensorflow.keras.preprocessing.text import one_hot
 import os
 import glob
+import json
 import itertools
 
 BASE_PATH = os.getcwd() + "/testcases/"
@@ -64,7 +65,7 @@ def one_hot_string(string_list, mapping_tuple, string_chunk_length=3):
         string_chunk_length = len(string_list[0])
 
     _, max_idx = mapping_tuple
-    
+
     # generate an one-hot-encoded numpy array
     # from the tensor of the chunked string
     encoded = [one_hot(chunk, max_idx) for chunk in string_list]
@@ -87,6 +88,31 @@ def get_vulnerability_categories(base_path=BASE_PATH):
             vulnerability_categories.append(label)
 
     return set(vulnerability_categories)
+
+
+def serialise_to_json(object, path):
+    with open(path, 'w') as f:
+        print("Saving object to ", path)
+        json.dump(object, f)
+
+
+def get_label_category_from_int(number):
+    lmap = None
+    if not os.path.exists(os.path.join(SAVE_PATH, 'label_map.json')):
+        if label_map is not None:
+            lmap = label_map
+        else:
+            raise RuntimeError("Could not find an appropriate label map! No associated JSON file/not in memory")
+    else:
+        with open(os.path.join(SAVE_PATH, 'label_map.json'), 'r') as f:
+            lmap = json.load(f)
+    
+    matches = [k for k, v in lmap.items() if v == number]
+    if len(matches) == 1:
+        return matches[0]
+    else:
+        print("get_label_category_from_int(): Hmm, got multiple matches for int ", number)
+        return matches
 
 
 def walk_level(directory, level=1):
@@ -134,3 +160,7 @@ def _init():
 
 
 _init()
+labels = get_vulnerability_categories()
+label_values = list(range(len(labels)))
+label_map = {key: value for key, value in zip(labels, label_values)}
+serialise_to_json(label_map, os.path.join(SAVE_PATH, 'label_map.json'))
