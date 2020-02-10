@@ -9,7 +9,6 @@ import util
 from data_gen import DataGenerator
 import json
 import os
-from os.path import join
 import datetime
 import time
 
@@ -93,7 +92,7 @@ shuffle_indices = np.random.permutation(np.arange(len(labels)))
 vec_shuf = vectors[shuffle_indices]
 lab_shuf = labels[shuffle_indices]'''
 
-tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)#, embeddings_freq=1, embeddings_layer_names=['embed'], embeddings_metadata='metadata.tsv', embeddings_data=data_test_x)
+tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)  # , embeddings_freq=1, embeddings_layer_names=['embed'], embeddings_metadata='metadata.tsv', embeddings_data=data_test_x)
 
 # obtain max vocabulary onehot size for embedding layer
 embed_vocab_size = 64

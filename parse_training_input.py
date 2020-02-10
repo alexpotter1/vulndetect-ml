@@ -2,7 +2,7 @@
 
 import javalang
 import numpy as np
-from tensorflow.keras.preprocessing.text import hashing_trick, text_to_word_sequence
+from tensorflow.keras.preprocessing.text import hashing_trick
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from scipy import sparse
 import json

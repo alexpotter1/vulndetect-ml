@@ -82,7 +82,7 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
             print("Returning placeholder zero arrays\n\n")
             x = np.zeros((self.dim), dtype=np.int32)
             y = np.zeros((self.dim), dtype=np.int32)
-
+            
         print('X shape=%s' % str(x.shape))
         print('Y shape=%s' % str(y.shape))
 
