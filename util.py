@@ -1,6 +1,5 @@
 import numpy as np
-import tensorflow as tf
-from scipy import sparse
+from tensorflow.keras.preprocessing.text import one_hot
 import os
 import glob
 import itertools
@@ -11,7 +10,7 @@ SAVE_PATH = BASE_PATH + "vectorised/"
 # stop memory usage getting hugh mungus
 MAX_FILE_PARSE = 75
 
-VEC_SIZE = 10 * 1024
+VEC_SIZE = 4096
 
 supported_char_list = r"abcdefghijklmnopqrstuvwxyz" \
                       r"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
@@ -64,20 +63,16 @@ def one_hot_string(string_list, mapping_tuple, string_chunk_length=3):
     if string_chunk_length != len(string_list[0]):
         string_chunk_length = len(string_list[0])
 
-    mapping, max_idx = mapping_tuple
-    indices = [mapping[chunk] for chunk in string_list]
-
+    _, max_idx = mapping_tuple
+    
     # generate an one-hot-encoded numpy array
     # from the tensor of the chunked string
-    encoded = tf.one_hot(indices, max_idx, dtype=tf.uint8).numpy()
-
-    # convert to sparse matrix to save space?
-    return sparse.csr_matrix(encoded)
+    encoded = [one_hot(chunk, max_idx) for chunk in string_list]
+    return encoded
 
 
-ONEHOT_CHUNK_SIZE = 2
+ONEHOT_CHUNK_SIZE = 1
 CHAR_MAPPING = generate_char_chunk_mapping(ONEHOT_CHUNK_SIZE)
-LABEL_CHAR_MAPPING = generate_char_chunk_mapping(1)
 
 
 @memoize
