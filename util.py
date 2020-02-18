@@ -11,8 +11,6 @@ SAVE_PATH = BASE_PATH + "vectorised/"
 # stop memory usage getting hugh mungus
 MAX_FILE_PARSE = 75
 
-VEC_SIZE = 4096
-
 supported_char_list = r"abcdefghijklmnopqrstuvwxyz" \
                       r"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
                       r"-,;.!?:'/\|_@#$%^&*~`+-=<>()[]{}\" "
@@ -164,3 +162,6 @@ labels = get_vulnerability_categories()
 label_values = list(range(len(labels)))
 label_map = {key: value for key, value in zip(labels, label_values)}
 serialise_to_json(label_map, os.path.join(SAVE_PATH, 'label_map.json'))
+
+VEC_MULTIPLIER = 48
+VEC_SIZE = len(get_vulnerability_categories()) * VEC_MULTIPLIER

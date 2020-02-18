@@ -109,8 +109,12 @@ def vectorise_texts(texts, vecsize=util.VEC_SIZE):
     longest_sequence_length = len(max(texts, key=len))
     one_hot_range_max = round(longest_sequence_length * 1.5)
 
-    one_hot = [hashing_trick(text, one_hot_range_max, hash_function='md5') for text in texts]
-    one_hot = pad_sequences(one_hot, maxlen=vecsize)
+    if isinstance(texts, list):
+        one_hot = [hashing_trick(text, one_hot_range_max, hash_function='md5') for text in texts]
+        one_hot = pad_sequences(one_hot, maxlen=vecsize)
+    else:
+        one_hot = hashing_trick(texts, one_hot_range_max, hash_function='md5')
+        one_hot += [0] * (util.VEC_SIZE - len(one_hot))
 
     # keep track of max used vocabulary size for onehot
     if os.path.exists(util.SAVE_PATH + "auto_vars.json"):
@@ -150,7 +154,7 @@ def get_vulnerable_code_samples_for_path(base_path):
                         texts.append(result)
                         # integer encode this so it's reversible
                         label_idx = label_map[label]
-                        one_hot_label_vector = [0] * util.VEC_SIZE
+                        one_hot_label_vector = [0] * int(util.VEC_SIZE / util.VEC_MULTIPLIER)
                         one_hot_label_vector[label_idx] = 1
                         labels.append(one_hot_label_vector)
             i += 1

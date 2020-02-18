@@ -15,6 +15,9 @@ import time
 import ray
 ray.init()
 
+tensorflow.keras.backend.clear_session()
+tensorflow.config.optimizer.set_jit(True)
+
 np.random.seed(5)
 categories = util.get_vulnerability_categories()
 
@@ -44,7 +47,7 @@ print("\nTraining...\n")
 labels = util.get_vulnerability_categories()
 
 generator_params = {
-    'dim': (17, 4096),
+    'dim': (17, util.VEC_SIZE),
     'batch_size': batch_size,
     'n_classes': len(labels),
     'n_channels': 71,
@@ -70,21 +73,21 @@ predict_gen = DataGenerator(predict, **generator_params)
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 os.makedirs(log_dir, exist_ok=True)
 
-'''# obtain data from test_gen for embedding visualisation
+# obtain data from test_gen for embedding visualisation
 # array(x1, x2, x3, ..., yn)
 # array(y1, y2, y3, ..., yn)
 data_test_x = []
-data_test_y = []
 iterator = test_gen.__iter__()
 for iterable in iterator:
     data_test_x.append(iterable[0])
-    data_test_y.append(iterable[1])
 
 data_test_x = np.asarray(data_test_x)
-data_test_y = np.asarray(data_test_y)
 
-with open(join(log_dir, 'metadata.tsv'), 'w') as f:
-    np.savetxt(f, data_test_y, fmt='%1.18e')'''
+# write labels to metadata
+labels = util.label_map.keys()
+with open(os.path.join(log_dir, 'metadata.tsv'), 'w') as f:
+    for label in labels:
+        f.write(label + "\n")
 
 '''vectors, labels = map(list, zip(*functions))
 
@@ -92,7 +95,7 @@ shuffle_indices = np.random.permutation(np.arange(len(labels)))
 vec_shuf = vectors[shuffle_indices]
 lab_shuf = labels[shuffle_indices]'''
 
-tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)  # , embeddings_freq=1, embeddings_layer_names=['embed'], embeddings_metadata='metadata.tsv', embeddings_data=data_test_x)
+tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)# , embeddings_freq=1, embeddings_layer_names=['embed'], embeddings_metadata='metadata.tsv', embeddings_data=None)
 
 # obtain max vocabulary onehot size for embedding layer
 embed_vocab_size = 64
@@ -110,11 +113,10 @@ model = Sequential()
 model.add(Embedding(embed_vocab_size, embedding_vector_length, input_length=generator_params['dim'][1], name='embed'))
 model.add(LSTM(64, recurrent_dropout=0.2, dropout=0.2))
 model.add(Dropout(0.2))
-model.add(Dense(4096))
-model.add(Lambda(lambda x: tensorflow.expand_dims(x, -1)))
+model.add(Dense(util.VEC_SIZE, activation='relu'))
 model.add(Dense(category_count, activation='softmax'))
 # model.add(Activation('softmax'))
-model.compile('adam', 'sparse_categorical_crossentropy', metrics=['sparse_categorical_accuracy'])
+model.compile('adam', 'categorical_crossentropy', metrics=['accuracy'])
 print(model.summary())
 steps_per_epoch = 10
 print("Steps/epoch: %s" % steps_per_epoch)
@@ -138,6 +140,7 @@ results = model.evaluate_generator(test_gen, verbose=1)
 print("test loss, test acc: ", results)
 
 print("\nModel prediction (using last 3 samples of test)")
+print("predictions used: ", str(predict))
 predictions = model.predict_generator(predict_gen, verbose=1)
 print("predictions shape: ", predictions.shape)
 print(predictions)

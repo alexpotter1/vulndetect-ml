@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 import tensorflow.keras
+import util
 
 
 class DataGenerator(tensorflow.keras.utils.Sequence):
@@ -81,7 +82,7 @@ class DataGenerator(tensorflow.keras.utils.Sequence):
             print("\n\nWARNING: %s" % (str(e)))
             print("Returning placeholder zero arrays\n\n")
             x = np.zeros((self.dim), dtype=np.int32)
-            y = np.zeros((self.dim), dtype=np.int32)
+            y = np.zeros((self.dim[0], len(util.get_vulnerability_categories())), dtype=np.int32)
             
         print('X shape=%s' % str(x.shape))
         print('Y shape=%s' % str(y.shape))
