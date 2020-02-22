@@ -1,6 +1,7 @@
 # TensorBoard logs
 logs/
 
+.vscode/
 *.npz
 *.h5
 
