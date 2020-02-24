@@ -74,18 +74,11 @@ ONEHOT_CHUNK_SIZE = 1
 CHAR_MAPPING = generate_char_chunk_mapping(ONEHOT_CHUNK_SIZE)
 
 
-@memoize
-def get_vulnerability_categories(base_path=BASE_PATH):
-    # populate labels
-    vulnerability_categories = []
-    for path, _, files in walk_level(base_path, level=1):
-        if len(files) > 0:
-            label = trim_root_path(base_path, path)
-            print("Discovered input directory: %s" % label)
-
-            vulnerability_categories.append(label)
-
-    return set(vulnerability_categories)
+def get_vulnerability_categories():
+    with open(os.path.join(os.getcwd(), 'labels.txt'), 'r') as f:
+        vulnerability_categories = [line.rstrip('\n') for line in f]
+    
+    return vulnerability_categories
 
 
 def serialise_to_json(object, path):
