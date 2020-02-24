@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import parse_training_input
 import tensorflow
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dropout, LSTM, Dense, Embedding
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import LSTM, Dense, Embedding
 import util
-from data_gen import DataGenerator
-import json
 import os
-import datetime
-import time
 
-import ray
-ray.init()
+try:
+    import tensorflow_datasets as tfds
+except ModuleNotFoundError:
+    print("Tensorflow dataset module not installed. Installing now...")
+
+    from setuptools.command.easy_install import main as install
+    install(['tensorflow_datasets'])
+    print("Installed!\n")
 
 tensorflow.keras.backend.clear_session()
 tensorflow.config.optimizer.set_jit(True)
@@ -23,6 +24,7 @@ categories = util.get_vulnerability_categories()
 
 max_files_to_load = 2000
 category_count = len(categories)
+print("Loaded %i vulnerability categories from labels.txt" % category_count)
 MAX_N_CHUNKS = 1000
 
 # Model hyper-params
@@ -34,116 +36,65 @@ p_dropout = (0.25, 0.5)
 hidden_dims = 128
 num_quantised_chars = len(util.supported_char_list)
 
-batch_size = 1
+batch_size = 4
 
-if not util.do_saved_vectors_exist():
-    print("\nParsing training data...\n")
-    parse_training_input.save_vulnerable_code_samples(util.BASE_PATH)
-    print("\nComplete. Starting training in 5 seconds...\n")
-    time.sleep(5)
+# get nist juliet dataset
+try:
+    tfds.load('nist_juliet_java')
+except tfds.core.registered.DatasetNotFoundError:
+    # Juliet dataset not yet registered, so explicitly register with TFDS
+    util.register_custom_dataset_with_tfds()
 
-print("\nTraining...\n")
-# setup data loader (generator)
-labels = util.get_vulnerability_categories()
-
-generator_params = {
-    'dim': (17, util.VEC_SIZE),
-    'batch_size': batch_size,
-    'n_classes': len(labels),
-    'n_channels': 71,
-    'shuffle': True,
-}
-
-full = util.get_saved_vector_list()
-# 70/30 train test split
-split = round(len(full) * 0.7)
-train = full[:split]
-test = full[split:]
-predict = test[-3:]
-
-# reserve 10 paths of train for validation
-validate = train[-10:]
-print((len(train), len(validate)))
-
-training_gen = DataGenerator(train, **generator_params)
-validation_gen = DataGenerator(validate, **generator_params)
-test_gen = DataGenerator(test, **generator_params)
-predict_gen = DataGenerator(predict, **generator_params)
-
-log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-os.makedirs(log_dir, exist_ok=True)
-
-# obtain data from test_gen for embedding visualisation
-# array(x1, x2, x3, ..., yn)
-# array(y1, y2, y3, ..., yn)
-data_test_x = []
-iterator = test_gen.__iter__()
-for iterable in iterator:
-    data_test_x.append(iterable[0])
-
-data_test_x = np.asarray(data_test_x)
-
-# write labels to metadata
-labels = util.label_map.keys()
-with open(os.path.join(log_dir, 'metadata.tsv'), 'w') as f:
-    for label in labels:
-        f.write(label + "\n")
-
-'''vectors, labels = map(list, zip(*functions))
-
-shuffle_indices = np.random.permutation(np.arange(len(labels)))
-vec_shuf = vectors[shuffle_indices]
-lab_shuf = labels[shuffle_indices]'''
-
-tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)  # , embeddings_freq=1, embeddings_layer_names=['embed'], embeddings_metadata='metadata.tsv', embeddings_data=None)
-
-# obtain max vocabulary onehot size for embedding layer
-embed_vocab_size = 64
-if os.path.exists(util.SAVE_PATH + "auto_vars.json"):
-    with open(util.SAVE_PATH + 'auto_vars.json', 'r') as f:
-        auto_vars = json.load(f)
+    # re-import and try again!
+    import tensorflow_datasets as tfds
     
-    embed_vocab_size = auto_vars.get('onehot_range_max', 64)
-    print("\n\nEmbedding layer vocabulary size set to %i\n\n" % embed_vocab_size)
+train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
+test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
+
+train_encoder = train_info.features['code'].encoder
+print('Training vocabulary size: %i' % train_encoder.vocab_size)
+
+print("Verifying encoder integrity...")
+test_str = 'The quick brown fox jumped over the lazy dog'
+encoded_decoded_str = train_encoder.decode(train_encoder.encode(test_str))
+
+assert encoded_decoded_str == test_str
+print("Verification successful!")
+
+BUFFER_SIZE = 10000
+BATCH_SIZE = 64
+
+pad_shape = ([None], ())
+train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE, padded_shapes=pad_shape)
+test_dataset = test_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE, padded_shapes=pad_shape)
+
+if os.path.exists(os.path.join(os.getcwd(), 'save_temp.h5')):
+    model = load_model('save_temp.h5')
+    print(model.summary())
 else:
-    print("WARNING: Autogenerated variable json doesn't exist! Neural network training may fail!")
+    model = Sequential()
+    model.add(Embedding(train_encoder.vocab_size, 64, name='embed'))
+    model.add(LSTM(64))
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(category_count, activation='softmax'))
+    print(model.summary())
 
-embedding_vector_length = 32
-model = Sequential()
-model.add(Embedding(embed_vocab_size, embedding_vector_length, input_length=generator_params['dim'][1], name='embed'))
-model.add(LSTM(64, recurrent_dropout=0.2, dropout=0.2))
-model.add(Dropout(0.2))
-model.add(Dense(util.VEC_SIZE, activation='relu'))
-model.add(Dense(category_count, activation='softmax'))
-# model.add(Activation('softmax'))
-model.compile('adam', 'categorical_crossentropy', metrics=['accuracy'])
-print(model.summary())
-steps_per_epoch = 10
-print("Steps/epoch: %s" % steps_per_epoch)
-history = model.fit(
-    x=training_gen,
-    validation_data=validation_gen,
-    validation_steps=1,
-    steps_per_epoch=None,
-    epochs=1,
-    use_multiprocessing=False,
-    workers=1,
-    shuffle=True,
-    verbose=1,
-    callbacks=[tensorboard_callback])
-model.save('save_temp.h5')
+    model.compile(loss=tensorflow.keras.losses.SparseCategoricalCrossentropy(from_logits=True), optimizer=tensorflow.keras.optimizers.Adam(1e-4), metrics=['sparse_categorical_accuracy'])
 
-print("\nhistory dict: ", history.history)
+    history = model.fit(train_dataset, epochs=10, validation_data=test_dataset, validation_steps=30)
+    model.save('save_temp.h5')
 
-print("\nModel evaluation")
-results = model.evaluate_generator(test_gen, verbose=1)
-print("test loss, test acc: ", results)
+test_loss, test_acc = model.evaluate(test_dataset)
+print('Test loss: {}'.format(test_loss))
+print('Test accuracy: {}'.format(test_acc))
 
-print("\nModel prediction (using last 3 samples of test)")
-print("predictions used: ", str(predict))
-predictions = model.predict_generator(predict_gen, verbose=1)
-print("predictions shape: ", predictions.shape)
-print(predictions)
+e = model.layers[0]
+weights = e.get_weights()[0]
+print(weights.shape)
 
-print("\nSaving predictions to file")
-np.savez('predictions', values=predictions)
+with open('vecs.tsv', 'w', encoding='utf-8') as out_v:
+    with open('meta.tsv', 'w', encoding='utf-8') as out_m:
+        for num, token in enumerate(train_encoder.subwords):
+            vec = weights[num + 1]
+            out_m.write(token + '\n')
+            out_v.write('\t'.join([str(x) for x in vec]) + '\n')
