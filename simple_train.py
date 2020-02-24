@@ -3,7 +3,7 @@
 import numpy as np
 import tensorflow
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Embedding
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Embedding
 import util
 import os
 
@@ -14,7 +14,7 @@ except ModuleNotFoundError:
 
     from setuptools.command.easy_install import main as install
     install(['tensorflow_datasets'])
-    print("Installed!\n")
+    print("Installed! --- Re run this script! ---\n")
 
 tensorflow.keras.backend.clear_session()
 tensorflow.config.optimizer.set_jit(True)
@@ -40,6 +40,8 @@ batch_size = 4
 
 # get nist juliet dataset
 try:
+    print("\nFetching NIST Juliet Java code dataset")
+    print("WARNING: THIS MAY TAKE A WHILE! PLEASE DO NOT INTERRUPT\n")
     train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
     test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
 except tfds.core.registered.DatasetNotFoundError:
@@ -60,6 +62,9 @@ encoded_decoded_str = train_encoder.decode(train_encoder.encode(test_str))
 
 assert encoded_decoded_str == test_str
 print("Verification successful!")
+
+print("Saving encoder to file...")
+train_encoder.save_to_file('train_encoder')
 
 BUFFER_SIZE = 10000
 BATCH_SIZE = 64

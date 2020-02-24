@@ -88,22 +88,13 @@ def serialise_to_json(object, path):
 
 
 def get_label_category_from_int(number):
-    lmap = None
-    if not os.path.exists(os.path.join(SAVE_PATH, 'label_map.json')):
-        if label_map is not None:
-            lmap = label_map
-        else:
-            raise RuntimeError("Could not find an appropriate label map! No associated JSON file/not in memory")
-    else:
-        with open(os.path.join(SAVE_PATH, 'label_map.json'), 'r') as f:
-            lmap = json.load(f)
+    labels = get_vulnerability_categories()
+    for i, label in enumerate(labels):
+        if number == i:
+            return label
     
-    matches = [k for k, v in lmap.items() if v == number]
-    if len(matches) == 1:
-        return matches[0]
-    else:
-        print("get_label_category_from_int(): Hmm, got multiple matches for int ", number)
-        return matches
+    # return None if no match
+    return None
 
 
 def walk_level(directory, level=1):

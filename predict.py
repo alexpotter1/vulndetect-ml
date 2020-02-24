@@ -2,23 +2,29 @@
 
 import numpy as np
 from tensorflow.keras.models import load_model
+import tensorflow_datasets as tfds
 import util
-from parse_training_input import vectorise_texts, extract_bad_function
+from parse_training_input import extract_bad_function_from_text
 
 model_file = 'save_temp.h5'
+encoder_file = 'train_encoder'
 input_path = "./new/test-cwe253.java"
 
 print("Loading model...\n")
 model = load_model(model_file)
 print(model.summary())
 
+print("Loading encoder...")
+encoder = tfds.features.text.SubwordTextEncoder.load_from_file(encoder_file)
+
 print("Loading new code sample...")
-code_sample = extract_bad_function(input_path)
-x_test = vectorise_texts(code_sample)
+with open(input_path, 'r') as f:
+    sample_text = extract_bad_function_from_text(f.read())
+    print(sample_text)
 
-print("Got x_test shape: ", x_test.shape)
+encoded = encoder.encode(sample_text)
 
-predictions = model.predict(x_test.toarray(), verbose=1)
+predictions = model.predict(encoded, verbose=1)
 print("Got prediction shape: ", predictions.shape)
 predicted_class = np.argmax(predictions[-1])
 predicted_label = util.get_label_category_from_int(predicted_class)
