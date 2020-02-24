@@ -40,16 +40,16 @@ batch_size = 4
 
 # get nist juliet dataset
 try:
-    tfds.load('nist_juliet_java')
+    train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
+    test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
 except tfds.core.registered.DatasetNotFoundError:
     # Juliet dataset not yet registered, so explicitly register with TFDS
     util.register_custom_dataset_with_tfds()
 
     # re-import and try again!
     import tensorflow_datasets as tfds
-    
-train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
-test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
+    train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
+    test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
 
 train_encoder = train_info.features['code'].encoder
 print('Training vocabulary size: %i' % train_encoder.vocab_size)
@@ -79,7 +79,7 @@ else:
     model.add(Dense(category_count, activation='softmax'))
     print(model.summary())
 
-    model.compile(loss=tensorflow.keras.losses.SparseCategoricalCrossentropy(from_logits=True), optimizer=tensorflow.keras.optimizers.Adam(1e-4), metrics=['sparse_categorical_accuracy'])
+    model.compile('adam', 'sparse_categorical_crossentropy', metrics=['accuracy'])
 
     history = model.fit(train_dataset, epochs=10, validation_data=test_dataset, validation_steps=30)
     model.save('save_temp.h5')
@@ -98,3 +98,4 @@ with open('vecs.tsv', 'w', encoding='utf-8') as out_v:
             vec = weights[num + 1]
             out_m.write(token + '\n')
             out_v.write('\t'.join([str(x) for x in vec]) + '\n')
+print("Saved vecs.tsv, meta.tsv for embedding visualisation")
