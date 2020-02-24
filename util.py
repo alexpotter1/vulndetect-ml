@@ -74,18 +74,11 @@ ONEHOT_CHUNK_SIZE = 1
 CHAR_MAPPING = generate_char_chunk_mapping(ONEHOT_CHUNK_SIZE)
 
 
-@memoize
-def get_vulnerability_categories(base_path=BASE_PATH):
-    # populate labels
-    vulnerability_categories = []
-    for path, _, files in walk_level(base_path, level=1):
-        if len(files) > 0:
-            label = trim_root_path(base_path, path)
-            print("Discovered input directory: %s" % label)
-
-            vulnerability_categories.append(label)
-
-    return set(vulnerability_categories)
+def get_vulnerability_categories():
+    with open(os.path.join(os.getcwd(), 'labels.txt'), 'r') as f:
+        vulnerability_categories = [line.rstrip('\n') for line in f]
+    
+    return vulnerability_categories
 
 
 def serialise_to_json(object, path):
@@ -146,6 +139,21 @@ def read_saved_vectors(read_max='all'):
 
 def trim_root_path(base_path, path):
     return path.replace(base_path, '')
+
+
+def register_custom_dataset_with_tfds():
+    import tensorflow_datasets as tfds
+    import shutil
+
+    tfds_path = os.path.join(tfds.__path__[-1], "text")
+    import_str = "from tensorflow_datasets.text.tfds_juliet import NISTJulietJava\n"
+
+    print("Registering NIST Juliet dataset with TFDS...")
+    shutil.copy2(os.path.join(os.getcwd(), "tfds_juliet", "tfds_juliet.py"), tfds_path)
+    with open(os.path.join(tfds_path, '__init__.py'), 'a') as f:
+        f.write(import_str)
+    
+    print("Done! Ensure TFDS is re-imported")
 
 
 def _init():
