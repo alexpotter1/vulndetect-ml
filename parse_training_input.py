@@ -70,7 +70,10 @@ def extract_function_from_text(src, criterion='bad'):
 
         return deepest_position
 
-    src_split = src.decode('utf-8')
+    if not isinstance(src, str):
+        src = src.decode('utf-8')
+
+    src_split = src.split('\n')
     try:
         tree = javalang.parse.parse(src)
         for _, node in tree.filter(javalang.tree.MethodDeclaration):
