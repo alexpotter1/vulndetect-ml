@@ -20,14 +20,16 @@ encoder = tfds.features.text.SubwordTextEncoder.load_from_file(encoder_file)
 print("Loading new code sample...")
 with open(input_path, 'r') as f:
     sample_text = extract_bad_function_from_text(f.read())
-    print(sample_text)
 
 encoded = encoder.encode(sample_text)
 
-predictions = model.predict(encoded, verbose=1)
-print("Got prediction shape: ", predictions.shape)
-predicted_class = np.argmax(predictions[-1])
+# must reshape to indicate batch size of 1
+# otherwise, we get a prediction for every word/token in the sequence (rather than the sequence as a whole)
+encoded = np.asarray(encoded, dtype=np.int32).reshape(1, -1)
+
+prediction = model.predict(encoded, verbose=1)[0]
+predicted_class = np.argmax(prediction)
 predicted_label = util.get_label_category_from_int(predicted_class)
 
-print("Predicted: ", str(predicted_label))
-print("Probability: ", round(predictions[-1][predicted_class] * 100, 2))
+print("\nPredicted: ", str(predicted_label))
+print("Prediction confidence: {}%".format(round(prediction[predicted_class] * 100, 2)))
