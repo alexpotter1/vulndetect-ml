@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import tensorflow
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Dropout, Embedding
@@ -19,24 +18,9 @@ except ModuleNotFoundError:
 tensorflow.keras.backend.clear_session()
 tensorflow.config.optimizer.set_jit(True)
 
-np.random.seed(5)
 categories = util.get_vulnerability_categories()
-
-max_files_to_load = 2000
 category_count = len(categories)
 print("Loaded %i vulnerability categories from labels.txt" % category_count)
-MAX_N_CHUNKS = 1000
-
-# Model hyper-params
-seq_length = 2 * 2048
-filter_size = (3, 9, 19)
-pooling_size = (3, 9, 19)
-num_filter = 128
-p_dropout = (0.25, 0.5)
-hidden_dims = 128
-num_quantised_chars = len(util.supported_char_list)
-
-batch_size = 4
 
 # get nist juliet dataset
 try:
