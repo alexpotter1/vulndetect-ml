@@ -3,7 +3,7 @@
 import numpy as np
 import tensorflow
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Embedding
+from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Dropout, Embedding
 import util
 import os
 
@@ -79,8 +79,10 @@ if os.path.exists(os.path.join(os.getcwd(), 'save_temp.h5')):
 else:
     model = Sequential()
     model.add(Embedding(train_encoder.vocab_size, 64, name='embed'))
-    model.add(LSTM(64))
+    model.add(Bidirectional(LSTM(64, return_sequences=True)))
+    model.add(Bidirectional(LSTM(32)))
     model.add(Dense(64, activation='relu'))
+    model.add(Dropout(0.5))
     model.add(Dense(category_count, activation='softmax'))
     print(model.summary())
 

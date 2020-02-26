@@ -3,6 +3,9 @@ logs/
 
 *.tsv
 
+new/
+*.subwords
+
 .vscode/
 *.npz
 *.h5
