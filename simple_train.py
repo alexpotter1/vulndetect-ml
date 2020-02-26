@@ -5,6 +5,7 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Dropout, Embedding
 import util
 import os
+import datetime
 
 try:
     import tensorflow_datasets as tfds
@@ -57,6 +58,10 @@ pad_shape = ([None], ())
 train_dataset = train_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE, padded_shapes=pad_shape)
 test_dataset = test_dataset.shuffle(BUFFER_SIZE).padded_batch(BATCH_SIZE, padded_shapes=pad_shape)
 
+log_dir = "logs/fit" + datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+tensorboard_callback = tensorflow.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+es_callback = tensorflow.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-2, patience=2, verbose=1)
+
 if os.path.exists(os.path.join(os.getcwd(), 'save_temp.h5')):
     model = load_model('save_temp.h5')
     print(model.summary())
@@ -72,7 +77,7 @@ else:
 
     model.compile('adam', 'sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    history = model.fit(train_dataset, epochs=10, validation_data=test_dataset, validation_steps=30)
+    history = model.fit(train_dataset, epochs=20, validation_data=test_dataset, validation_steps=30, callbacks=[tensorboard_callback, es_callback])
     model.save('save_temp.h5')
 
 test_loss, test_acc = model.evaluate(test_dataset)
