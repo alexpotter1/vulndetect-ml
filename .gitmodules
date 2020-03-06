@@ -1,0 +1,3 @@
+[submodule "dissertation"]
+	path = dissertation
+	url = git@github.com:alexpotter1/dissertation.git
