@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 from flask import Flask
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 STATUS_CODES = {
     200: '200 OK',
@@ -51,6 +53,6 @@ class APIResponse(object):
         }
 
 
-@app.route('/')
+@app.route('/api')
 def default_hello():
     return APIResponse().with_message('Hello from flask').with_statusCode(200).build()
