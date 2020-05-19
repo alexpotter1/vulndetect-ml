@@ -1,9 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { AppBar, Toolbar, IconButton, Typography, makeStyles, CssBaseline, createMuiTheme, ThemeProvider } from "@material-ui/core"
+import Menu from "@material-ui/icons/Menu"
 import APIClient, { IAPIResponse } from './api/APIClient';
+import './App.css'
+import { blue, red } from '@material-ui/core/colors';
+import Detector from './Detector';
+
+const theme = createMuiTheme({
+  palette: {
+    primary: blue,
+    secondary: red
+  },
+});
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    display: 'flex'
+  },
+  appBar: {
+    zIndex: theme.zIndex.drawer + 1,
+    transition: theme.transitions.create(['width', 'margin'], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+  },
+}));
 
 function App() {
+  const classes = useStyles();
   const [flask_response, set_flask_response] = useState({message: 'Connecting to API'} as IAPIResponse)
   const client = new APIClient()
 
@@ -24,23 +48,22 @@ function App() {
   }, [client, flask_response]);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <p>{flask_response.message}</p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider theme={theme}>
+      <div className={classes.root}>
+        <CssBaseline />
+        <AppBar className={classes.appBar} position="static">
+          <Toolbar>
+            <IconButton edge="start" color="inherit" aria-label="menu">
+              <Menu />
+            </IconButton>
+            <Typography variant="h6">
+              Vulnerability Detector
+            </Typography>
+          </Toolbar>
+        </AppBar>
+      </div>
+      <Detector />
+    </ThemeProvider>
   );
 }
 
