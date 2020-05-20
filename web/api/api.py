@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-from flask import Flask
+from flask import request
 from flask_cors import CORS
+from predictor import AppWithOptionalPredictor
 
-app = Flask(__name__)
+model_path = '../../save_temp.h5'
+encoder_path = '../../train_encoder.subwords'
+
+app = AppWithOptionalPredictor(__name__)
 CORS(app)
 
 STATUS_CODES = {
@@ -53,6 +57,24 @@ class APIResponse(object):
         }
 
 
-@app.route('/api')
-def default_hello():
-    return APIResponse().with_message('Hello from flask').with_statusCode(200).build()
+@app.route('/api/heartbeat', methods=['GET'])
+def heartbeat():
+    return APIResponse().with_message('Heartbeat').with_statusCode(200).build()
+
+
+@app.route('/api/predict', methods=['POST'])
+def predict():
+    code_text = request.form.get('file', None)
+
+    retr_str = 'Got '
+    if 'file' not in request.files:
+        print('No files uploaded')
+        retr_str += code_text
+    else:
+        file = request.files['file']
+        print(file.name)
+        file.seek(0)
+        file_data = file.read().decode('utf-8')
+        retr_str += 'file with data %s' % str(file_data)
+
+    return APIResponse().with_message(retr_str).with_statusCode(200).build()

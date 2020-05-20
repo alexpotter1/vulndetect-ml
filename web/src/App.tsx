@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppBar, Toolbar, IconButton, Typography, makeStyles, CssBaseline, createMuiTheme, ThemeProvider } from "@material-ui/core"
 import Menu from "@material-ui/icons/Menu"
 import APIClient, { IAPIResponse } from './api/APIClient';
@@ -28,24 +28,30 @@ const useStyles = makeStyles((theme) => ({
 
 function App() {
   const classes = useStyles();
-  const [flask_response, set_flask_response] = useState({message: 'Connecting to API'} as IAPIResponse)
-  const client = new APIClient()
-
+  const [backendAlive, setBackendAlive] = useState(false);
   useEffect(() => {
-    const getFlask = () => {
-      if (flask_response.status === undefined) {
-        client.getFlaskHello().then((data) => {
-          set_flask_response(data)
-        })
-      }
+    const backendHeartbeat = (): void => {
+      APIClient.getBackendHeartbeat().then((data: IAPIResponse) => {
+        if (data.status === '200 OK') {
+          setBackendAlive(true);
+        }
+      }).catch((error) => {
+        setBackendAlive(false);
+      });
     }
-    const interval = setInterval(() => {
-      getFlask();
-    }, 1000);
 
-    getFlask();
+    let heartbeatInterval = 10000;
+    if (backendAlive) {
+      heartbeatInterval = 20000;
+    }
+
+    const interval = setInterval(() => {
+      backendHeartbeat();
+    }, heartbeatInterval);
+
+    backendHeartbeat();
     return () => clearInterval(interval);
-  }, [client, flask_response]);
+  }, [backendAlive]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -62,7 +68,7 @@ function App() {
           </Toolbar>
         </AppBar>
       </div>
-      <Detector />
+      <Detector backendAlive={backendAlive} />
     </ThemeProvider>
   );
 }

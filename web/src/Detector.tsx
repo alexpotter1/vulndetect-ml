@@ -25,7 +25,16 @@ interface IFormErrors {
     code: string;
 }
 
-const Detector = () => {
+export interface ICodeVulnerableProps {
+    isVulnerable?: boolean;
+    vulnerablityCategory?: string;
+}
+
+export interface IDetectorProps extends ICodeVulnerableProps {
+    backendAlive: boolean;
+}
+
+const Detector = (props: IDetectorProps) => {
     const classes = useStyles();
 
     return (
@@ -38,6 +47,16 @@ const Detector = () => {
                     <Typography className={classes.section} variant="h5">
                         By Alex Potter (6416626)
                     </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                    <span className={classes.section}>
+                    <Typography variant="h6">
+                        Backend status: 
+                    </Typography>
+                    <Typography variant="h6" color={props.backendAlive ? 'primary' : 'error'}>
+                        {props.backendAlive ? 'Connected' : 'Not connected'}
+                    </Typography>
+                    </span>
                 </Grid>
                 <Grid item xs={12}>
                     <Paper className={`${classes.section} ${classes.space} ${classes.paper}`}>

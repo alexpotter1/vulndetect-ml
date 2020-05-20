@@ -21,7 +21,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start-api": "cd api && flask run --no-debugger",
+    "start-api": "cd api && flask run --no-debugger --eager-loading",
+    "link-api": "cd api && ln -s ../../util.py util.py && ln -s ../../parse_training_input.py parse_training_input.py",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

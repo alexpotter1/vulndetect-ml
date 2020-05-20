@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import { makeStyles, Button } from '@material-ui/core';
+import { ICodeVulnerableProps } from './Detector';
+import APIClient from './api/APIClient';
 
 const useStyles = makeStyles((theme) => ({
     boxFullWidth: {
@@ -11,24 +13,30 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const CodeForm = () => {
+const CodeForm = (props: ICodeVulnerableProps) => {
     const classes = useStyles();
-    const [codeFile, setCodeFile] = useState<File | null>(null)
+    const [codeFile, setCodeFile] = useState<File | undefined>(undefined)
     const formik = useFormik({
         initialValues: {
             code: '',
         },
         onSubmit: values => {
-            alert(JSON.stringify(values, null, 1))
+            let data = new FormData();
+            if (values.code.length > 0) {
+                data.append('file', values.code)
+            } else if (codeFile !== undefined) {
+                data.append('file', codeFile)
+            } else {
+                console.log('Error: no code entered/uploaded!')
+                return;
+            }
+
+            APIClient.postCodeSample(data).then((res) => {
+                console.log(res.status)
+                console.log(res.message)
+            })
         },
     });
-
-    useEffect(() => {
-        if (codeFile !== null) {
-            let data = new FormData();
-            data.append('file', codeFile)
-        }
-    }, [codeFile]);
 
     return (
         <form onSubmit={formik.handleSubmit}>
