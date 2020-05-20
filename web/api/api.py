@@ -4,9 +4,10 @@ from flask_cors import CORS
 from predictor import AppWithOptionalPredictor
 
 model_path = '../../save_temp.h5'
-encoder_path = '../../train_encoder.subwords'
+encoder_path = '../../train_encoder'
 
 app = AppWithOptionalPredictor(__name__)
+app.create_predictor(model_path, encoder_path)
 CORS(app)
 
 STATUS_CODES = {
@@ -66,15 +67,23 @@ def heartbeat():
 def predict():
     code_text = request.form.get('file', None)
 
-    retr_str = 'Got '
     if 'file' not in request.files:
         print('No files uploaded')
-        retr_str += code_text
     else:
         file = request.files['file']
         print(file.name)
         file.seek(0)
-        file_data = file.read().decode('utf-8')
-        retr_str += 'file with data %s' % str(file_data)
+        code_text = file.read().decode('utf-8')
+    
+    predictor_response = app.predict_from_text_sample(code_text)
+    api_response = APIResponse()
 
-    return APIResponse().with_message(retr_str).with_statusCode(200).build()
+    if predictor_response['status'] == 'OK':
+        api_response = api_response.with_statusCode(200).with_message(predictor_response['vulnerabilityCategory'] + str(predictor_response['predictionConfidence']))
+    else:
+        if 'parse Java input' in predictor_response['error']:
+            api_response = api_response.with_statusCode(400).with_message(predictor_response['error'])
+        else:
+            api_response = api_response.with_statusCode(500)
+    
+    return api_response.build()

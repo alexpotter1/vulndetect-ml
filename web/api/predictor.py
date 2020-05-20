@@ -41,14 +41,14 @@ class PredictorResponseModel(object):
     
     def build(self):
         fail = (False, '')
-        if self.status is 'OK':
+        if self.status == 'OK':
             if self.error is not None:
                 fail = (True, 'Error cannot be set if status was OK')
             if self.isVulnerable is None:
                 fail = (True, 'Vulnerable flag cannot be unset if status was OK')
             if self.predictionConfidence is None:
                 fail = (True, 'Confidence must be set if status was OK')
-        elif self.status is 'FAIL':
+        elif self.status == 'FAIL':
             if self.error is None:
                 fail = (True, 'Error must be set if status was FAIL')
             if self.isVulnerable is not None:
@@ -88,11 +88,12 @@ class Predictor(object):
     def initialise_predictor_engine(self):
         self.model = tf.keras.models.load_model(self.model_path)
         self.encoder = tfds.features.text.SubwordTextEncoder.load_from_file(self.encoder_path)
+        print('Predictor engine initialised')
 
     def predict_from_text_sample(self, text):
         response = PredictorResponseModel()
         sample_text = extract_bad_function_from_text(text)
-        if len(sample_text) == 0:
+        if sample_text is None:
             # didn't parse correctly
             response = response.with_status_fail().with_error('Could not parse Java input')
         else:
@@ -124,13 +125,13 @@ class AppWithOptionalPredictor(Flask):
 
         self.predictor = None
 
-    def createPredictor(self, model_path, encoder_path):
-        if self.predictor is not None:
+    def create_predictor(self, model_path, encoder_path):
+        if self.predictor is None:
             self.predictor = Predictor(model_path, encoder_path)
             self.predictor.initialise_predictor_engine()
     
     def predict_from_text_sample(self, text):
         if self.predictor is None:
-            raise RuntimeError('Predictor not initialised - call createPredictor() first')
+            raise RuntimeError('Predictor not initialised - call create_predictor() first')
         
         return self.predictor.predict_from_text_sample(text)
