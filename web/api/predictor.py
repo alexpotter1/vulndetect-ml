@@ -5,9 +5,10 @@ import tensorflow_datasets as tfds
 
 import util
 from parse_training_input import extract_bad_function_from_text
+from models.internal.predictor_response_model import PredictorResponseModel
 
 
-class PredictorResponseModel(object):
+class PredictorResponseBuilder(object):
     def __init__(self):
         self.status = None
         self.error = None
@@ -60,24 +61,15 @@ class PredictorResponseModel(object):
         else:
             fail = (True, 'Status was not set')
 
-        ret = {
-            'status': self.status,
-            'error': self.error,
-            'isVulnerable': None,
-            'vulnerabilityCategory': None,
-            'predictionConfidence': None,
-        }
-
         if fail[0]:
             # force error because construction was not correct
-            ret['status'] = 'FAIL'
-            ret['error'] = 'PredictorResponseModel user construction error: %s' % fail[1]
-        else:
-            ret['isVulnerable'] = self.isVulnerable
-            ret['vulnerabilityCategory'] = self.vulnerabilityCategory
-            ret['predictionConfidence'] = self.predictionConfidence
-
-        return ret
+            self.status = 'FAIL'
+            self.error = 'PredictorResponseModel user construction error: %s' % fail[1]
+            self.isVulnerable = None
+            self.vulnerabilityCategory = None
+            self.predictionConfidence = None
+        
+        return PredictorResponseModel(self.status, self.error, self.isVulnerable, self.vulnerabilityCategory, self.predictionConfidence)
 
 
 class Predictor(object):
@@ -91,7 +83,7 @@ class Predictor(object):
         print('Predictor engine initialised')
 
     def predict_from_text_sample(self, text):
-        response = PredictorResponseModel()
+        response = PredictorResponseBuilder()
         sample_text = extract_bad_function_from_text(text)
         if sample_text is None:
             # didn't parse correctly
