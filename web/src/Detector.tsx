@@ -1,6 +1,7 @@
-import React from 'react'
-import { Grid, Typography, makeStyles, Paper } from "@material-ui/core"
+import React, { useState } from 'react'
+import { Grid, Typography, makeStyles, Paper, CircularProgress } from "@material-ui/core"
 import CodeForm from './CodeForm';
+import { IAPIResponse } from './api/APIClient';
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -25,17 +26,20 @@ interface IFormErrors {
     code: string;
 }
 
-export interface ICodeVulnerableProps {
+export interface ICodeVulnerable {
     isVulnerable?: boolean;
     vulnerablityCategory?: string;
+    predictionConfidence?: number;
 }
 
-export interface IDetectorProps extends ICodeVulnerableProps {
+export interface IDetectorProps {
     backendAlive: boolean;
 }
 
 const Detector = (props: IDetectorProps) => {
     const classes = useStyles();
+    const [analysisResponse, setAnalysisResponse] = useState<IAPIResponse>({});
+    const notifyCallback = (res: IAPIResponse) => { setAnalysisResponse(res) }
 
     return (
         <div className={classes.root}>
@@ -58,9 +62,29 @@ const Detector = (props: IDetectorProps) => {
                     </Typography>
                     </span>
                 </Grid>
+                {analysisResponse.status && 
                 <Grid item xs={12}>
                     <Paper className={`${classes.section} ${classes.space} ${classes.paper}`}>
-                        <CodeForm />
+                        <Typography variant="h5">Code Analysis</Typography>
+                        {analysisResponse.status === 'waiting' &&
+                        <>
+                            <Typography variant="h6">Waiting for response...</Typography>
+                            <CircularProgress color="secondary" />
+                        </>}
+                        {analysisResponse.status !== '200 OK' && analysisResponse.status !== 'waiting' &&
+                        <>
+                            <Typography variant="h6" color={'secondary'}>{analysisResponse.status}</Typography>
+                            <Typography variant="h6">Reason: {analysisResponse.message}</Typography>
+                        </>}
+                        {analysisResponse.status === '200 OK' &&
+                        <Typography variant="h6" color={analysisResponse.isVulnerable ? 'secondary' : 'primary'}>{analysisResponse.isVulnerable ? 'Vulnerable' : 'Not vulnerable'}</Typography>}
+                        {analysisResponse.vulnerablityCategory !== undefined && <Typography variant="h6">Category: {analysisResponse.vulnerablityCategory}</Typography>}
+                        {analysisResponse.predictionConfidence !== undefined && <Typography variant="h6">Confidence: {Math.round(analysisResponse.predictionConfidence)}%</Typography>}
+                    </Paper>
+                </Grid>}
+                <Grid item xs={12}>
+                    <Paper className={`${classes.section} ${classes.space} ${classes.paper}`}>
+                        <CodeForm notify={notifyCallback} />
                     </Paper>
                 </Grid>
             </Grid>

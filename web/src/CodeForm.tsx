@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import { makeStyles, Button } from '@material-ui/core';
-import { ICodeVulnerableProps } from './Detector';
-import APIClient from './api/APIClient';
+import APIClient, { IResponseMessenger } from './api/APIClient';
 
 const useStyles = makeStyles((theme) => ({
     boxFullWidth: {
@@ -13,7 +12,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-const CodeForm = (props: ICodeVulnerableProps) => {
+const CodeForm = (props: IResponseMessenger) => {
     const classes = useStyles();
     const [codeFile, setCodeFile] = useState<File | undefined>(undefined)
     const formik = useFormik({
@@ -31,9 +30,18 @@ const CodeForm = (props: ICodeVulnerableProps) => {
                 return;
             }
 
+            // notify observer that we have initiated the request
+            props.notify({status: 'waiting'})
             APIClient.postCodeSample(data).then((res) => {
-                console.log(res.status)
-                console.log(res.message)
+                // there's a bug somewhere in the casting mechanism to IAPIResponse (one field is undefined even though it exists in the response!)
+                // so this is a workaround
+                let vulnerabilityCategory = JSON.parse(JSON.stringify(res)).vulnerabilityCategory;
+                if (vulnerabilityCategory !== null) {
+                    vulnerabilityCategory = vulnerabilityCategory.replace(/_/g, ' ');
+                    res.vulnerablityCategory = vulnerabilityCategory;
+                }
+
+                props.notify(res);
             })
         },
     });
