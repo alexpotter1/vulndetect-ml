@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  detect-nginx:
+    image: nginx:latest
+    restart: always
+    expose:
+      - 80
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/web:/usr/share/nginx/html
+      - ./logs/:/var/log/nginx
+    environment:
+      VIRTUAL_HOST: detect.alexpotter.net
+      LETSENCRYPT_HOST: detect.alexpotter.net
+      LETSENCRYPT_EMAIL: ap00798@surrey.ac.uk
+      ENABLE_IPV6: "true"
+      SSL_POLICY: "Mozilla-Modern"
+      HSTS: "max-age=31536000; includeSubdomains; preload"
+    networks:
+      default:
+        ipv4_address: 172.18.0.10
+  detect-backend:
+    build: ./backend
+    command: /bin/bash -c "cd /api && gunicorn --bind 0.0.0.0:5000 wsgi:app"
+    volumes:
+      - ./backend/api:/api
+    expose:
+      - "5000"
+    depends_on:
+      - detect-nginx
+    networks:
+      default:
+        ipv4_address: 172.18.0.11
+
+volumes:
+  html:
+
+networks:
+  default:
+    external:
+      name: nginx_proxy
