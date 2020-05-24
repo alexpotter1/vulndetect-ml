@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from flask import request
 from flask_cors import CORS
 from predictor import AppWithOptionalPredictor
@@ -45,3 +46,6 @@ def predict():
             api_response = api_response.with_statusCode(500)
     
     return api_response.build()
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0')
