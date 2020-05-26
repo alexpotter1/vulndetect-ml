@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Bidirectional, LSTM, Dense, Dropout, Embeddi
 import util
 import os
 import datetime
+from tfds_juliet.tfds_juliet import NISTJulietJava
 
 try:
     import tensorflow_datasets as tfds
@@ -24,19 +25,10 @@ category_count = len(categories)
 print("Loaded %i vulnerability categories from labels.txt" % category_count)
 
 # get nist juliet dataset
-try:
-    print("\nFetching NIST Juliet Java code dataset")
-    print("WARNING: THIS MAY TAKE A WHILE! PLEASE DO NOT INTERRUPT\n")
-    train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
-    test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
-except tfds.core.registered.DatasetNotFoundError:
-    # Juliet dataset not yet registered, so explicitly register with TFDS
-    util.register_custom_dataset_with_tfds()
-
-    # re-import and try again!
-    import tensorflow_datasets as tfds
-    train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
-    test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
+print("\nFetching NIST Juliet Java code dataset")
+print("WARNING: THIS MAY TAKE A WHILE! PLEASE DO NOT INTERRUPT\n")
+train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
+test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
 
 train_encoder = train_info.features['code'].encoder
 print('Training vocabulary size: %i' % train_encoder.vocab_size)
