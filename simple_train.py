@@ -30,8 +30,13 @@ print("WARNING: THIS MAY TAKE A WHILE! PLEASE DO NOT INTERRUPT\n")
 train_dataset, train_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[:80%]')
 test_dataset, test_info = tfds.load('nist_juliet_java/subwords16k', with_info=True, as_supervised=True, split='train[-20%:]')
 
-train_encoder = train_info.features['code'].encoder
-print('Training vocabulary size: %i' % train_encoder.vocab_size)
+if os.path.exists(os.path.join(os.getcwd(), 'train_encoder.subwords')):
+    print('Loading encoder from file')
+    train_encoder = tfds.features.text.SubwordTextEncoder.load_from_file('train_encoder')
+else:
+    print('Building encoder')
+    train_encoder = train_info.features['code'].encoder
+    print('Training vocabulary size: %i' % train_encoder.vocab_size)
 
 print("Verifying encoder integrity...")
 test_str = 'The quick brown fox jumped over the lazy dog'

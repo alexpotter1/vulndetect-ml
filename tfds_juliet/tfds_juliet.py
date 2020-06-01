@@ -25,7 +25,7 @@ class NISTJulietJavaConfig(tfds.core.BuilderConfig):
             version=tfds.core.Version('1.0.0'),
             supported_versions=[
                 tfds.core.Version(
-                    "0.1.0", experiments={tfds.core.Experiment.S3: False}
+                    "0.1.0"
                 )
             ],
             **kwargs)
